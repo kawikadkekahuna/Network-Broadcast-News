@@ -26,10 +26,10 @@ function clientConnected(socket) {
   });
 
   socket.on('end', function() {
-    if(socket.username){
-    process.stdout.write('\n' + socket.username.toString() + ' has disconnected ' + '\n');
-    //Removes socket from connected clients when done
-    CLIENT_ID.splice(socket.socketIndex, 1);
+    if (socket.username) {
+      process.stdout.write('\n' + socket.username.toString() + ' has disconnected ' + '\n');
+      //Removes socket from connected clients when done
+      CLIENT_ID.splice(socket.socketIndex, 1);
     }
     socket.socketIndex = CONNECTED_CLIENTS.indexOf(socket);
     CONNECTED_CLIENTS.splice(socket.socketIndex, 1);
@@ -77,8 +77,8 @@ server.listen(PORT, function() {
 })
 
 server.on('connection', function(socket) {
-  var address = socket.remoteAddress + ':' + socket.remotePort;
-  process.stdout.write('CONNECTED: ' + address + '\n');
+  var address = socket.remoteAddress + ':' + socket.remotePort + '\n';
+  process.stdout.write('CONNECTED: ' + address);
 
 })
 
@@ -91,3 +91,11 @@ server.on('error', function(error) {
     }, 1000);
   }
 });
+
+process.stdin.on('data',function(chunk){
+
+  process.stdout.write('['+ADMIN_NAME + ']'+chunk);
+  CONNECTED_CLIENTS.forEach(function(socket){
+    socket.write('['+ADMIN_NAME + ']' + chunk);
+  });
+})

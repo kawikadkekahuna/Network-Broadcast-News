@@ -11,7 +11,7 @@ var socket = net.createConnection({
 });
 
 socket.on('end',function(){
-  process.stdout.write('disconnected');
+  process.stdout.write('disconnectedadad');
 })
 
 socket.on('data', function(message) {
