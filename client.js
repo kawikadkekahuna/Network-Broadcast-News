@@ -10,8 +10,8 @@ var socket = net.createConnection({
   host: HOST
 });
 
-socket.on('connection', function(socket) {
-  process.stdin.write('welcome');
+socket.on('end',function(){
+  process.stdout.write('disconnected');
 })
 
 socket.on('data', function(message) {
@@ -19,6 +19,7 @@ socket.on('data', function(message) {
   process.stdout.write(message);
 
 });
+
 
 process.stdin.pipe(socket);
 // socket.end();''

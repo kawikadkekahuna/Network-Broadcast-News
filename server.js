@@ -8,51 +8,67 @@ var OPENED_STATE = 'opened';
 var ADMIN_NAME = 'ADMIN';
 
 function clientConnected(socket) {
-  // var socketName;
-  createUsername(socket);
+  var CURRENT_STATE;
   CONNECTED_CLIENTS.push(socket);
+  createUsername(socket);
 
 
   socket.on('data', function(chunk) {
-    if (socket.socketState === INIT_STATE) {
-      socket.username = chunk.toString().substring(0, chunk.length - 1);
-      if (CLIENT_ID.indexOf(socket.username) === -1 && socket.username !== ADMIN_NAME.toLowerCase() && socket.username !== ADMIN_NAME) {
-        CLIENT_ID.push(socket.username);
-        socket.write('WELCOME ' + socket.username + '\n');
-        socket.socketState = OPENED_STATE;
-        process.stdout.write(socket.username + ' has joined the chat');
-      } else {
-        socket.write('Invalid username.  Please enter another alias \n');
-      }
-    } else if (socket.socketState === OPENED_STATE) {
-      var message = '\n' + socket.username + '> ' + chunk;
-      CONNECTED_CLIENTS.forEach(sendMessage(message));
+    switch (CURRENT_STATE) {
+      case INIT_STATE:
+        init(chunk);
+        break;
+
+      case OPENED_STATE:
+        relayMessage(chunk);
     }
+
   });
 
-
-
   socket.on('end', function() {
+    if(socket.username){
     process.stdout.write('\n' + socket.username.toString() + ' has disconnected ' + '\n');
     //Removes socket from connected clients when done
+    CLIENT_ID.splice(socket.socketIndex, 1);
+    }
     socket.socketIndex = CONNECTED_CLIENTS.indexOf(socket);
     CONNECTED_CLIENTS.splice(socket.socketIndex, 1);
     socket.destroy();
 
-
   });
-}
 
-function sendMessage(message) {
+  function createUsername(socket) {
+    CURRENT_STATE = INIT_STATE;
+    socket.write('Welcome to TCP Chat.  Please enter your alias \n');
+  };
 
-  process.stdout.write(message);
+  function init(chunk) {
+    socket.username = chunk.toString().substring(0, chunk.length - 1);
+    if (CLIENT_ID.indexOf(socket.username) === -1 && socket.username !== ADMIN_NAME.toLowerCase() && socket.username !== ADMIN_NAME && socket.username !== '[ADMIN]' && socket.username !== '[admin]') {
+      CLIENT_ID.push(socket.username);
+      socket.write('WELCOME ' + socket.username + '\n');
+      process.stdout.write(socket.username + ' has joined the chat \n');
+      CURRENT_STATE = OPENED_STATE;
+    } else {
+      socket.write('Invalid username.  Please enter another alias \n');
+    }
+  }
 
-  return function(client) {
-    client.write(message);
+  function relayMessage(chunk) {
+    var message = '\n' + socket.username + '> ' + chunk;
+    CONNECTED_CLIENTS.forEach(sendMessage(message));
+  }
 
+  function sendMessage(message) {
+
+    process.stdout.write(message);
+
+    return function(client) {
+      client.write(message);
+
+    }
   }
 }
-
 
 var server = net.createServer(clientConnected);
 
@@ -63,7 +79,6 @@ server.listen(PORT, function() {
 server.on('connection', function(socket) {
   var address = socket.remoteAddress + ':' + socket.remotePort;
   process.stdout.write('CONNECTED: ' + address + '\n');
-
 
 })
 
@@ -76,9 +91,3 @@ server.on('error', function(error) {
     }, 1000);
   }
 });
-
-
-function createUsername(socket) {
-  socket.socketState = INIT_STATE;
-  socket.write('Welcome to TCP Chat.  Please enter your alias \n');
-};
