@@ -6,6 +6,7 @@ var CLIENT_ID = [];
 var INIT_STATE = 'init';
 var OPENED_STATE = 'opened';
 var ADMIN_NAME = 'ADMIN';
+var POWER = '/';
 
 function clientConnected(socket) {
   var CURRENT_STATE;
@@ -73,6 +74,7 @@ function clientConnected(socket) {
 var server = net.createServer(clientConnected);
 
 server.listen(PORT, function() {
+
   console.log('Server listening on: ' + HOST + ':' + PORT + '\n');
 })
 
@@ -92,10 +94,23 @@ server.on('error', function(error) {
   }
 });
 
-process.stdin.on('data',function(chunk){
+process.stdin.on('data', function(chunk) {
+  if (chunk.toString().charAt(0) === POWER) {
+    var command = chunk.toString().substring(0, chunk.length - 1);
+    switch (command) {
+      case '/kick':
+        console.log(CLIENT_ID);
+        break;
+    }
+  } else {
+    relayToServer(chunk)
+  }
 
-  process.stdout.write('['+ADMIN_NAME + ']'+chunk);
-  CONNECTED_CLIENTS.forEach(function(socket){
-    socket.write('['+ADMIN_NAME + ']' + chunk);
-  });
 })
+
+function relayToServer(chunk) {
+  process.stdout.write('[' + ADMIN_NAME + ']' + chunk);
+  CONNECTED_CLIENTS.forEach(function(socket) {
+    socket.write('[' + ADMIN_NAME + ']' + chunk);
+  });
+}
