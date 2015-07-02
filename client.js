@@ -11,7 +11,7 @@ var socket = net.createConnection({
 });
 
 socket.on('end',function(){
-  process.stdout.write('disconnectedadad');
+  process.stdout.write('You have been kicked');
 })
 
 socket.on('data', function(message) {

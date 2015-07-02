@@ -76,6 +76,7 @@ var server = net.createServer(clientConnected);
 server.listen(PORT, function() {
 
   console.log('Server listening on: ' + HOST + ':' + PORT + '\n');
+
 })
 
 server.on('connection', function(socket) {
@@ -96,12 +97,25 @@ server.on('error', function(error) {
 
 process.stdin.on('data', function(chunk) {
   if (chunk.toString().charAt(0) === POWER) {
-    var command = chunk.toString().substring(0, chunk.length - 1);
-    switch (command) {
+    var powerCommand = chunk.toString().substring(0, chunk.toString().indexOf(' '));
+    var powerDestination = chunk.toString().substring(chunk.toString().indexOf(' ') + 1, chunk.length - 1);
+
+
+    switch (powerCommand) {
       case '/kick':
-        console.log(CLIENT_ID);
+        var socketIndex = CLIENT_ID.indexOf(powerDestination);
+        CLIENT_ID.splice(1, socketIndex);
+        console.log('CONNECTED_CLIENTS[socketIndex]', socketIndex);
+        if(CONNECTED_CLIENTS[socketIndex] !== -1){
+        CONNECTED_CLIENTS[socketIndex].destroy();
+        CONNECTED_CLIENTS.splice(1, socketIndex)
+          // console.log(CLIENT_ID);
+        }
+
         break;
     }
+
+
   } else {
     relayToServer(chunk)
   }
