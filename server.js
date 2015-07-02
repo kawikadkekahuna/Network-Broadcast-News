@@ -1,4 +1,5 @@
 var net = require('net');
+var EventEmitter = require("events");
 var HOST = '0.0.0.0';
 var PORT = 6969;
 var CONNECTED_CLIENTS = [];
@@ -7,9 +8,16 @@ var INIT_STATE = 'init';
 var OPENED_STATE = 'opened';
 var ADMIN_NAME = 'ADMIN';
 var POWER = '/';
+var MESSAGE_INTERVAL = 200;
+var MESSAGE_CAP = 5;
+var MESSAGE_TIMEOUT = 800;
 
 function clientConnected(socket) {
+  var self = this;
+  var MESSAGE_CNT = 0;
   var CURRENT_STATE;
+  var RUNNING = false;
+  socket.hasBeenKicked = false; //True if been kicked, false if otherwise
   createUsername(socket);
 
 
@@ -17,6 +25,7 @@ function clientConnected(socket) {
     switch (CURRENT_STATE) {
       case INIT_STATE:
         init(chunk);
+
         break;
 
       case OPENED_STATE:
@@ -26,6 +35,10 @@ function clientConnected(socket) {
   });
 
   socket.on('end', function() {
+    if (socket.hasBeenKicked) {
+      console.log('in');
+      socket.write('you have been kicked');
+    }
     destroySocket(socket);
 
   });
@@ -51,6 +64,11 @@ function clientConnected(socket) {
   function relayMessage(chunk) {
     var message = '\n' + socket.username + '> ' + chunk;
     CONNECTED_CLIENTS.forEach(sendMessage(message));
+    MESSAGE_CNT++;
+    if (!RUNNING) {
+      messageKeeper();
+    }
+
   }
 
   function sendMessage(message) {
@@ -62,6 +80,24 @@ function clientConnected(socket) {
 
     }
   }
+
+  function messageKeeper() {
+    RUNNING = true;
+    var intervalID = setInterval(function() {
+      if (MESSAGE_CNT === MESSAGE_CAP) {
+        destroySocket(socket);
+        clearInterval(timeoutID);
+        clearInterval(this);
+      }
+    }, MESSAGE_INTERVAL);
+
+    var timeoutID = setTimeout(function() {
+      MESSAGE_CNT = 0;
+      RUNNING = false;
+    }, MESSAGE_TIMEOUT)
+  }
+
+
 }
 
 var server = net.createServer(clientConnected);
@@ -97,24 +133,17 @@ process.stdin.on('data', function(chunk) {
       case '/kick':
         try {
           var socketIndex = CLIENT_ID.indexOf(powerDestination);
+          CONNECTED_CLIENTS[socketIndex].hasBeenKicked = true;
           destroySocket(CONNECTED_CLIENTS[socketIndex]);
         } catch (e) {
           console.log('Could not find target.  Try again');
         }
         break;
-      case '/ls':
-        try {
-          console.log(CLIENT_ID);
-        } catch (e) {
-          console.log('Could not find target.  Try again');
-        }
+      case '/lsuser':
+        console.log(CLIENT_ID);
         break;
       case '/yelp':
-        try {
-          console.log(CONNECTED_CLIENTS);
-        } catch (e) {
-          console.log('Could not find target.  Try again');
-        }
+        console.log(CONNECTED_CLIENTS);
         break;
 
     }
@@ -133,13 +162,12 @@ function relayToServer(chunk) {
 
 function destroySocket(socket) {
   if (socket.username) {
-  socket.socketIndex = CONNECTED_CLIENTS.indexOf(socket);
+    socket.socketIndex = CONNECTED_CLIENTS.indexOf(socket);
     process.stdout.write('\n' + socket.username.toString() + ' has disconnected ' + '\n');
     //Removes socket from connected clients when done
     CLIENT_ID.splice(socket.socketIndex, 1);
-    console.log('CLIENT_ID', CLIENT_ID);
-  CONNECTED_CLIENTS.splice(socket.socketIndex, 1);
-  socket.destroy();
+    CONNECTED_CLIENTS.splice(socket.socketIndex, 1);
+    socket.destroy();
   }
 
 }
