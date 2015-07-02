@@ -11,17 +11,14 @@ var socket = net.createConnection({
 });
 
 socket.on('connection', function(socket) {
-  state = 'init';
   process.stdin.write('welcome');
 })
 
 socket.on('data', function(message) {
-  if (state === 'init') {
+  
+  process.stdout.write(message);
 
-  } else {
-    process.stdout.write(message);
-  }
-})
+});
 
 process.stdin.pipe(socket);
 // socket.end();''
